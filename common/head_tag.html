@@ -1,0 +1,47 @@
+<!-- Custom homepage component -->
+<script type="text/discourse-plugin" version="0.8">
+  const ajax = require('discourse/lib/ajax').ajax;
+  const Topic = require('discourse/models/topic').default;
+
+  api.registerConnectorClass('above-main-container', 'featured-topics', {
+
+    setupComponent(args, component) {
+      component.set('hostname', window.location.hostname);
+
+      api.onPageChange((url, title) => {
+        if ((url == "/") || (url == "/latest") ){
+          $('html').addClass('show-custom-homepage');
+          component.set('displayCustomHomepage', true);
+
+          ajax("/tags/featured.json").then (function(result){ // Get posts from tag "featured"
+                    featuredTopics = [];
+                    var usersOne = result.users;
+                    result.topic_list.topics.slice(0,4).forEach(function(topic){
+                      topic.posters.forEach(function(poster){
+                        poster.user = $.grep(usersOne, function(e){ return e.id == poster.user_id; })[0];
+                      });
+                      featuredTopics.push(Topic.create(topic));
+                    });
+                    component.set('featuredTopics', featuredTopics);
+                  });
+        } else { // Hide homepage
+          $('html').removeClass('show-custom-homepage');
+          component.set('displayCustomHomepage', false);
+        }
+      });
+    }
+  });
+</script>
+
+<!-- Custom homepage template -->
+<script
+  type="text/x-handlebars"
+  data-template-name="/connectors/above-main-container/featured-topics"
+>
+
+    {{#if displayCustomHomepage}}
+    <div class="custom-homepage-wrapper">
+      {{topic-list topics=featuredTopics showPosters=true}}
+    </div>
+  {{/if}}
+</script>
